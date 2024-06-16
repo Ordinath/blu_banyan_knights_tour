@@ -4,42 +4,52 @@ import { Board, Position } from '../types';
 
 const ChessboardLabel: React.FC<{ label: string }> = ({ label }) => <div className="w-16 h-16 flex items-center justify-center">{label}</div>;
 
-const ChessboardCell: React.FC<{ x: number; y: number; onClick: (x: number, y: number) => void; cellValue: number | null }> = ({
+const ChessboardCell: React.FC<{ x: number; y: number; onClick: (x: number, y: number) => void; cellValue: number | null; showLabel: boolean }> = ({
     x,
     y,
     onClick,
     cellValue,
+    showLabel,
 }) => (
     <div
         className={`w-16 h-16 flex items-center justify-center cursor-pointer ${(x + y) % 2 === 0 ? 'bg-gray-200' : 'bg-gray-800 text-white'}`}
         onClick={() => onClick(x, y)}
     >
-        {cellValue !== null ? cellValue + 1 : ''}
+        {cellValue !== null && showLabel ? cellValue + 1 : ''}
     </div>
 );
 
-const ChessboardRow: React.FC<{ y: number; width: number; height: number; onClick: (x: number, y: number) => void; board: Board }> = ({
+const ChessboardRow: React.FC<{ y: number; width: number; height: number; onClick: (x: number, y: number) => void; board: Board; showLabel: boolean }> = ({
     y,
     width,
     height,
     onClick,
     board,
+    showLabel,
 }) => (
     <div className="flex">
         <ChessboardLabel label={`${height - y}`} />
         {[...Array(width)].map((_, x) => (
-            <ChessboardCell key={x} x={x} y={y} onClick={onClick} cellValue={board[x] && board[x][y] !== undefined ? board[x][y] : null} />
+            <ChessboardCell
+                key={x}
+                x={x}
+                y={y}
+                onClick={onClick}
+                cellValue={board[x] && board[x][y] !== undefined ? board[x][y] : null}
+                showLabel={showLabel}
+            />
         ))}
         <ChessboardLabel label={`${height - y}`} />
     </div>
 );
 
-const Chessboard: React.FC<{ width: number; height: number }> = ({ width, height }) => {
+const Chessboard: React.FC<{ width: number; height: number; opacity: number; showLabel: boolean }> = ({ width, height, opacity, showLabel }) => {
     const [board, setBoard] = useState<Board>([]);
     const [path, setPath] = useState<Position[]>([]);
 
     useEffect(() => {
         setBoard([...Array(height)].map(() => Array(width).fill(null)));
+        setPath([]);
     }, [width, height]);
 
     const handleCellClick = (x: number, y: number) => {
@@ -73,7 +83,7 @@ const Chessboard: React.FC<{ width: number; height: number }> = ({ width, height
         );
 
         for (let y = 0; y < height; y++) {
-            rows.push(<ChessboardRow key={y} y={y} width={width} height={height} onClick={handleCellClick} board={board} />);
+            rows.push(<ChessboardRow key={y} y={y} width={width} height={height} onClick={handleCellClick} board={board} showLabel={showLabel} />);
         }
 
         rows.push(
@@ -87,7 +97,7 @@ const Chessboard: React.FC<{ width: number; height: number }> = ({ width, height
         );
 
         return rows;
-    }, [width, height, board]);
+    }, [width, height, board, showLabel]);
 
     const renderPath = useMemo(() => {
         if (path.length === 0) return null;
@@ -105,7 +115,7 @@ const Chessboard: React.FC<{ width: number; height: number }> = ({ width, height
         for (let i = 0; i < path.length - 1; i++) {
             const start = getCoordinates(path[i]);
             const end = getCoordinates(path[i + 1]);
-            pathElements.push(<line key={i} x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="red" strokeWidth="2" strokeOpacity="0.2" />);
+            pathElements.push(<line key={i} x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="red" strokeWidth="2" strokeOpacity={opacity} />);
         }
 
         return (
@@ -113,7 +123,7 @@ const Chessboard: React.FC<{ width: number; height: number }> = ({ width, height
                 {pathElements}
             </svg>
         );
-    }, [path, width, height]);
+    }, [path, width, height, opacity]);
 
     return (
         <div className="relative flex flex-col items-center">
