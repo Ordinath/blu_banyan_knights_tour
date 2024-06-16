@@ -11,18 +11,11 @@ const POSSIBLE_KNIGHT_MOVES = [
     { x: 2, y: 1 },
 ];
 
-const getLabel = (x: number, y: number, board: Board) => {
-    const letter = String.fromCharCode(65 + x);
-    const number = board[0].length - y;
-    return `${letter}${number}`;
-};
-
 export const calculateKnightPath = (startX = 0, startY = 0, width: number, height: number, closedTour: boolean) => {
     console.log('Calculating knight path from:', startX, startY, 'on board:', width, height);
     const board = [...Array(width)].map(() => Array(height).fill(null));
     const path = [];
     // add initial position to path
-    // path.push({ x: startX, y: startY, label: getLabel(startX, startY) });
     path.push({ x: startX, y: startY });
     board[startX][startY] = 0; // index of the first move
 
@@ -71,8 +64,6 @@ export const calculateKnightPath = (startX = 0, startY = 0, width: number, heigh
         }
         // if the path array length === number of squares on the board
         if (path.length === board.length * board[0].length) {
-            // add labels to the path positions
-            path.forEach((position) => (position.label = getLabel(position.x, position.y, board)));
             // console.log('Total iterations:', iterationCount);
             // console.log('solution found!', path);
             // console.log('board', board);

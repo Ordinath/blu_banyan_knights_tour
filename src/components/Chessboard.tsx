@@ -2,6 +2,12 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { calculateKnightPath } from '../knightTour';
 import { Board, Position } from '../types';
 
+const getLabel = (x: number, y: number, board: Board) => {
+    const letter = String.fromCharCode(65 + x);
+    const number = board[0].length - y;
+    return `${letter}${number}`;
+};
+
 const ChessboardLabel: React.FC<{ label: string }> = ({ label }) => <div className="w-16 h-16 flex items-center justify-center">{label}</div>;
 
 const ChessboardCell: React.FC<{ x: number; y: number; onClick: (x: number, y: number) => void; cellValue: number | null; showLabel: boolean }> = ({
@@ -68,6 +74,7 @@ const Chessboard: React.FC<{ width: number; height: number; opacity: number; sho
         console.log('Knight Path Result:', knightPathResult);
         if (knightPathResult) {
             setBoard(knightPathResult.board);
+            knightPathResult.path.forEach((position) => (position.label = getLabel(position.x, position.y, board)));
             setPath(knightPathResult.path);
         } else {
             setBoard([...Array(width)].map(() => Array(height).fill(null)));
@@ -103,7 +110,7 @@ const Chessboard: React.FC<{ width: number; height: number; opacity: number; sho
         );
 
         return rows;
-    }, [width, height, board, showLabel]);
+    }, [width, height, board, showLabel, closedTour, handleCellClick]);
 
     const renderPath = useMemo(() => {
         if (path.length === 0) return null;
@@ -136,6 +143,12 @@ const Chessboard: React.FC<{ width: number; height: number; opacity: number; sho
             <div className="relative" style={{ width: (width + 2) * 64, height: (height + 2) * 64 }}>
                 {renderPath}
                 {renderChessboard}
+                {path.length > 0 && (
+                    <div className="flex flex-col items-center">
+                        <div className="text-lg font-bold mt-4">Path:</div>
+                        <div className="text-lg font-bold">{path.map((position) => `${position.label}`).join(' -> ')}</div>
+                    </div>
+                )}
             </div>
         </div>
     );
