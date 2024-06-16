@@ -83,9 +83,8 @@ export const calculateKnightPath = async (
     }
 
     const center = { x: width / 2, y: height / 2 };
-
-    const board = [...Array(width)].map(() => Array(height).fill(null));
-    const path = [];
+    const board: Board = [...Array(width)].map(() => Array(height).fill(null));
+    const path: Position[] = [];
 
     let moveOrderArray = moveOrdering ? moveOrdering.toString().split('').map(Number) : [1, 2, 3, 4, 5, 6, 7, 8];
 

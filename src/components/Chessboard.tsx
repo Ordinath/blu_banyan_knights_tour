@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { calculateKnightPath } from '../knightTour';
 import { Algorithm, Board, Position, TieBreakMethod } from '../types';
 
@@ -83,37 +83,40 @@ const Chessboard: React.FC<ChessboardProps> = ({
         setPath([]);
     }, [width, height]);
 
-    const handleCellClick = async (x: number, y: number) => {
-        console.log('Clicked cell:', x, y);
+    const handleCellClick = useCallback(
+        async (x: number, y: number) => {
+            console.log('Clicked cell:', x, y);
 
-        const startX = x;
-        const startY = y;
+            const startX = x;
+            const startY = y;
 
-        const knightPathResult = await calculateKnightPath(
-            startX,
-            startY,
-            width,
-            height,
-            iterationLimit,
-            attemptLimit,
-            closedTour,
-            algorithm,
-            tieBreakMethod,
-            moveOrdering
-        );
+            const knightPathResult = await calculateKnightPath(
+                startX,
+                startY,
+                width,
+                height,
+                iterationLimit,
+                attemptLimit,
+                closedTour,
+                algorithm,
+                tieBreakMethod,
+                moveOrdering
+            );
 
-        console.log('Knight Path Result:', knightPathResult);
+            console.log('Knight Path Result:', knightPathResult);
 
-        if (knightPathResult) {
-            setBoard(knightPathResult.board);
-            knightPathResult.path.forEach((position) => (position.label = getLabel(position.x, position.y, board)));
-            setPath(knightPathResult.path);
-        } else {
-            setBoard([...Array(width)].map(() => Array(height).fill(null)));
-            setPath([]);
-            alert('No solution found from this position.');
-        }
-    };
+            if (knightPathResult) {
+                setBoard(knightPathResult.board);
+                knightPathResult.path.forEach((position) => (position.label = getLabel(position.x, position.y, board)));
+                setPath(knightPathResult.path);
+            } else {
+                setBoard([...Array(width)].map(() => Array(height).fill(null)));
+                setPath([]);
+                alert('No solution found from this position.');
+            }
+        },
+        [width, height, iterationLimit, attemptLimit, closedTour, algorithm, tieBreakMethod, moveOrdering, board]
+    );
 
     const renderChessboard = useMemo(() => {
         const rows = [];
