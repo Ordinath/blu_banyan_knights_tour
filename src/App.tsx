@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Chessboard from './components/Chessboard';
 
 function App() {
@@ -56,6 +56,10 @@ function App() {
         setMoveOrdering(Number(e.target.value));
     };
 
+    useEffect(() => {
+        setIterationLimit(width * height);
+    }, [width, height]);
+
     return (
         <div className="App flex flex-col items-center">
             <h1 className="text-3xl font-bold underline my-4">Knight's Tour</h1>
@@ -100,7 +104,6 @@ function App() {
                             <option value="random">Random</option>
                             <option value="pohl">Pohl</option>
                             <option value="closest_to_center">Closest to Center</option>
-                            <option value="furthest_from_center">Furthest from Center</option>
                             <option value="furthest_from_center">Furthest from Center</option>
                             <option value="move_ordering">Move Ordering</option>
                         </select>
