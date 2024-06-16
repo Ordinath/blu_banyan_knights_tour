@@ -43,7 +43,13 @@ const ChessboardRow: React.FC<{ y: number; width: number; height: number; onClic
     </div>
 );
 
-const Chessboard: React.FC<{ width: number; height: number; opacity: number; showLabel: boolean }> = ({ width, height, opacity, showLabel }) => {
+const Chessboard: React.FC<{ width: number; height: number; opacity: number; showLabel: boolean; closedTour: boolean }> = ({
+    width,
+    height,
+    opacity,
+    showLabel,
+    closedTour,
+}) => {
     const [board, setBoard] = useState<Board>([]);
     const [path, setPath] = useState<Position[]>([]);
 
@@ -58,7 +64,7 @@ const Chessboard: React.FC<{ width: number; height: number; opacity: number; sho
         const startX = x;
         const startY = y;
 
-        const knightPathResult = calculateKnightPath(startX, startY, width, height);
+        const knightPathResult = calculateKnightPath(startX, startY, width, height, closedTour);
         console.log('Knight Path Result:', knightPathResult);
         if (knightPathResult) {
             setBoard(knightPathResult.board);

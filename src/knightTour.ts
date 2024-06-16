@@ -17,7 +17,7 @@ const getLabel = (x: number, y: number, board: Board) => {
     return `${letter}${number}`;
 };
 
-export const calculateKnightPath = (startX = 0, startY = 0, width: number, height: number) => {
+export const calculateKnightPath = (startX = 0, startY = 0, width: number, height: number, closedTour: boolean) => {
     console.log('Calculating knight path from:', startX, startY, 'on board:', width, height);
     const board = [...Array(width)].map(() => Array(height).fill(null));
     const path = [];
@@ -66,17 +66,36 @@ export const calculateKnightPath = (startX = 0, startY = 0, width: number, heigh
         if (iterationCount % 1000000 === 0) {
             console.log('iteration:', iterationCount);
         }
-        if (iterationCount > 10000000) {
+        if (iterationCount > 100000000) {
             return null;
         }
         // if the path array length === number of squares on the board
         if (path.length === board.length * board[0].length) {
             // add labels to the path positions
             path.forEach((position) => (position.label = getLabel(position.x, position.y, board)));
-            console.log('Total iterations:', iterationCount);
+            // console.log('Total iterations:', iterationCount);
             // console.log('solution found!', path);
             // console.log('board', board);
-            return { board, path };
+            if (closedTour) {
+                // check if the last move can move to the initial position
+                const lastPosition = path[path.length - 1];
+                const firstPosition = path[0];
+                for (let i = 0; i < POSSIBLE_KNIGHT_MOVES.length; i++) {
+                    const possibleMove = POSSIBLE_KNIGHT_MOVES[i];
+                    const newX = lastPosition.x + possibleMove.x;
+                    const newY = lastPosition.y + possibleMove.y;
+
+                    const newPosition = { x: newX, y: newY };
+
+                    if (newPosition.x === firstPosition.x && newPosition.y === firstPosition.y) {
+                        path.push(newPosition);
+                        return { board, path };
+                    }
+                }
+                return null;
+            } else {
+                return { board, path };
+            }
         }
         const currentPosition = path[path.length - 1];
 
@@ -118,8 +137,15 @@ export const calculateKnightPath = (startX = 0, startY = 0, width: number, heigh
             }
         }
 
-        // sort the moves by the number of valid moves
-        candidateMoves.sort((a, b) => a.count - b.count);
+        if (candidateMoves.length !== 0) {
+            // sort the moves by the number of valid moves
+            candidateMoves.sort((a, b) => a.count - b.count);
+            // identify the candidates with the same smallest number of valid moves and shuffle them randomly at the beginning of the array for lulz
+            const smallestCount = candidateMoves[0].count;
+            let movesWithSmallestCount = candidateMoves.filter((move) => move.count === smallestCount);
+            movesWithSmallestCount = movesWithSmallestCount.sort(() => Math.random() - 0.5);
+            candidateMoves = movesWithSmallestCount.concat(candidateMoves.filter((move) => move.count !== smallestCount));
+        }
 
         for (let i = 0; i < candidateMoves.length; i++) {
             const move = candidateMoves[i].move;
