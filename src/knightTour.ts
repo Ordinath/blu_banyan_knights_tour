@@ -1,4 +1,4 @@
-import { Board, Position } from './types';
+import { Algorithm, Board, Move, Position, TieBreakMethod } from './types';
 
 /* 
 https://blogs.asarkar.com/assets/docs/algorithms-curated/Warnsdorff-Rule%20Algorithm%20-%20Squirrel+Cull.pdf
@@ -42,7 +42,7 @@ http://dagstuhl.sunsite.rwth-aachen.de/volltexte/2020/12765/pdf/LIPIcs-FUN-2021-
 https://sites.science.oregonstate.edu/math_reu/proceedings/REU_Proceedings/Proceedings2004/2004Ganzfried.pdf
 */
 
-const POSSIBLE_KNIGHT_MOVES = [
+const POSSIBLE_KNIGHT_MOVES: Move[] = [
     { x: 1, y: -2, order: 1 },
     { x: 2, y: -1, order: 2 },
     { x: 2, y: 1, order: 3 },
@@ -61,8 +61,8 @@ export const calculateKnightPath = async (
     iterationLimit: number,
     attemptLimit: number,
     closedTour: boolean,
-    method: string,
-    tieBreakMethod: string,
+    algorithm: Algorithm,
+    tieBreakMethod: TieBreakMethod,
     moveOrdering: number
 ) => {
     console.log(
@@ -72,9 +72,9 @@ export const calculateKnightPath = async (
         'on board:',
         width,
         height,
-        'with method:',
-        method,
-        `${method === 'warnsdorf' ? `and tie break method: ${tieBreakMethod}` : ''}`
+        'with algorithm:',
+        algorithm,
+        `${algorithm === Algorithm.WARNSDORF ? `and tie break method: ${tieBreakMethod}` : ''}`
     );
 
     // If the number of squares on the board configuration is odd and the square clicked was black square, there are no solutions.
@@ -158,7 +158,7 @@ export const calculateKnightPath = async (
         }
         const currentPosition = path[path.length - 1];
 
-        if (method === 'bruteforce') {
+        if (algorithm === Algorithm.BRUTEFORCE) {
             for (let i = 0; i < POSSIBLE_KNIGHT_MOVES.length; i++) {
                 const possibleMove = POSSIBLE_KNIGHT_MOVES[i];
                 const newX = currentPosition.x + possibleMove.x;
@@ -179,7 +179,7 @@ export const calculateKnightPath = async (
             }
 
             return null;
-        } else if (method === 'move_ordering') {
+        } else if (algorithm === Algorithm.MOVE_ORDERING) {
             for (let i = 0; i < moveOrderArray.length; i++) {
                 const currentMoveOrder = moveOrderArray[i];
                 const possibleMove = POSSIBLE_KNIGHT_MOVES.find((move) => move.order === currentMoveOrder);
@@ -202,7 +202,7 @@ export const calculateKnightPath = async (
                     }
                 }
             }
-        } else if (method === 'warnsdorf') {
+        } else if (algorithm === Algorithm.WARNSDORF) {
             // identify candidate moves
             let candidateMoves = [];
 
@@ -223,9 +223,9 @@ export const calculateKnightPath = async (
                 // sort the moves by the number of valid moves
                 candidateMoves.sort((a, b) => a.count - b.count);
                 // tie breaking methods
-                if (tieBreakMethod === 'first') {
+                if (tieBreakMethod === TieBreakMethod.FIRST) {
                     // do nothing
-                } else if (tieBreakMethod === 'random') {
+                } else if (tieBreakMethod === TieBreakMethod.RANDOM) {
                     // identify the candidates with the same smallest number of valid moves
                     // and shuffle them randomly at the beginning of the array for lulz
                     const smallestCount = candidateMoves[0].count;
@@ -234,7 +234,7 @@ export const calculateKnightPath = async (
                         movesWithSmallestCount = movesWithSmallestCount.sort(() => Math.random() - 0.5);
                         candidateMoves = movesWithSmallestCount.concat(candidateMoves.filter((move) => move.count !== smallestCount));
                     }
-                } else if (tieBreakMethod === 'pohl') {
+                } else if (tieBreakMethod === TieBreakMethod.POHL) {
                     // Pohl's Tie-Breaking Rule - https://dl.acm.org/doi/pdf/10.1145/363427.363463
                     // we dive one level deeper and calculate the number of valid moves from the next move
                     // for each candidate move with the smallest number of valid moves
@@ -257,7 +257,7 @@ export const calculateKnightPath = async (
                         });
                         candidateMoves = movesWithSmallestCount.concat(candidateMoves.filter((move) => move.count !== smallestCount));
                     }
-                } else if (tieBreakMethod === 'furthest_from_center' || tieBreakMethod === 'closest_from_center') {
+                } else if (tieBreakMethod === TieBreakMethod.FURTHEST_FROM_CENTER || tieBreakMethod === TieBreakMethod.CLOSEST_TO_CENTER) {
                     // furthest - Roth rule - https://www.wolframcloud.com/objects/nbarch/2018/10/2018-10-10r6l3m/Knight.nb
                     // furthest or closest from the center
                     const smallestCount = candidateMoves[0].count;
@@ -269,7 +269,7 @@ export const calculateKnightPath = async (
                             let distanceB = (b.move.x - center.x) ** 2 + (b.move.y - center.y) ** 2;
 
                             let result =
-                                tieBreakMethod === 'furthest_from_center'
+                                tieBreakMethod === TieBreakMethod.FURTHEST_FROM_CENTER
                                     ? distanceB - distanceA // For furthest from center, sort descending
                                     : distanceA - distanceB; // For closest to center, sort ascending
 
@@ -282,7 +282,7 @@ export const calculateKnightPath = async (
                         });
                         candidateMoves = movesWithSmallestCount.concat(candidateMoves.filter((move) => move.count !== smallestCount));
                     }
-                } else if (tieBreakMethod === 'move_ordering') {
+                } else if (tieBreakMethod === TieBreakMethod.MOVE_ORDERING) {
                     // move ordering tie break
                     const smallestCount = candidateMoves[0].count;
                     let movesWithSmallestCount = candidateMoves.filter((move) => move.count === smallestCount);

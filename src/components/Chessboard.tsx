@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { calculateKnightPath } from '../knightTour';
-import { Board, Position } from '../types';
+import { Algorithm, Board, Position, TieBreakMethod } from '../types';
 
 const getLabel = (x: number, y: number, board: Board) => {
     const letter = String.fromCharCode(65 + x);
@@ -49,7 +49,8 @@ const ChessboardRow: React.FC<{ y: number; width: number; height: number; onClic
     </div>
 );
 
-const Chessboard: React.FC<{
+// Chessboard interface
+interface ChessboardProps {
     width: number;
     height: number;
     opacity: number;
@@ -57,10 +58,23 @@ const Chessboard: React.FC<{
     iterationLimit: number;
     attemptLimit: number;
     closedTour: boolean;
-    method: string;
-    tieBreakMethod: string;
+    algorithm: Algorithm;
+    tieBreakMethod: TieBreakMethod;
     moveOrdering: number;
-}> = ({ width, height, opacity, showLabel, iterationLimit, attemptLimit, closedTour, method, tieBreakMethod, moveOrdering }) => {
+}
+
+const Chessboard: React.FC<ChessboardProps> = ({
+    width,
+    height,
+    opacity,
+    showLabel,
+    iterationLimit,
+    attemptLimit,
+    closedTour,
+    algorithm,
+    tieBreakMethod,
+    moveOrdering,
+}) => {
     const [board, setBoard] = useState<Board>([]);
     const [path, setPath] = useState<Position[]>([]);
 
@@ -75,7 +89,18 @@ const Chessboard: React.FC<{
         const startX = x;
         const startY = y;
 
-        const knightPathResult = await calculateKnightPath(startX, startY, width, height, iterationLimit, attemptLimit, closedTour, method, tieBreakMethod, moveOrdering);
+        const knightPathResult = await calculateKnightPath(
+            startX,
+            startY,
+            width,
+            height,
+            iterationLimit,
+            attemptLimit,
+            closedTour,
+            algorithm,
+            tieBreakMethod,
+            moveOrdering
+        );
 
         console.log('Knight Path Result:', knightPathResult);
 
