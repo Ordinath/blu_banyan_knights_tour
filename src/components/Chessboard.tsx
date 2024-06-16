@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { calculateKnightPath } from '../knightTour';
 import { Board } from '../types';
 
@@ -28,14 +28,18 @@ const ChessboardRow: React.FC<{ y: number; width: number; height: number; onClic
     <div className="flex">
         <ChessboardLabel label={`${height - y}`} />
         {[...Array(width)].map((_, x) => (
-            <ChessboardCell key={x} x={x} y={y} onClick={onClick} cellValue={board[x][y]} />
+            <ChessboardCell key={x} x={x} y={y} onClick={onClick} cellValue={board[x] && board[x][y] !== undefined ? board[x][y] : null} />
         ))}
         <ChessboardLabel label={`${height - y}`} />
     </div>
 );
 
 const Chessboard: React.FC<{ width: number; height: number }> = ({ width, height }) => {
-    const [board, setBoard] = useState<Board>([...Array(width)].map(() => Array(height).fill(null)));
+    const [board, setBoard] = useState<Board>([]);
+
+    useEffect(() => {
+        setBoard([...Array(height)].map(() => Array(width).fill(null)));
+    }, [width, height]);
 
     const handleCellClick = (x: number, y: number) => {
         console.log('Clicked cell:', x, y);
