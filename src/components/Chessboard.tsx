@@ -49,13 +49,18 @@ const ChessboardRow: React.FC<{ y: number; width: number; height: number; onClic
     </div>
 );
 
-const Chessboard: React.FC<{ width: number; height: number; opacity: number; showLabel: boolean; closedTour: boolean }> = ({
-    width,
-    height,
-    opacity,
-    showLabel,
-    closedTour,
-}) => {
+const Chessboard: React.FC<{
+    width: number;
+    height: number;
+    opacity: number;
+    showLabel: boolean;
+    iterationLimit: number;
+    attemptLimit: number;
+    closedTour: boolean;
+    method: string;
+    tieBreakMethod: string;
+    moveOrdering: number;
+}> = ({ width, height, opacity, showLabel, iterationLimit, attemptLimit, closedTour, method, tieBreakMethod, moveOrdering }) => {
     const [board, setBoard] = useState<Board>([]);
     const [path, setPath] = useState<Position[]>([]);
 
@@ -64,14 +69,16 @@ const Chessboard: React.FC<{ width: number; height: number; opacity: number; sho
         setPath([]);
     }, [width, height]);
 
-    const handleCellClick = (x: number, y: number) => {
+    const handleCellClick = async (x: number, y: number) => {
         console.log('Clicked cell:', x, y);
 
         const startX = x;
         const startY = y;
 
-        const knightPathResult = calculateKnightPath(startX, startY, width, height, closedTour);
+        const knightPathResult = await calculateKnightPath(startX, startY, width, height, iterationLimit, attemptLimit, closedTour, method, tieBreakMethod, moveOrdering);
+
         console.log('Knight Path Result:', knightPathResult);
+
         if (knightPathResult) {
             setBoard(knightPathResult.board);
             knightPathResult.path.forEach((position) => (position.label = getLabel(position.x, position.y, board)));
@@ -87,11 +94,11 @@ const Chessboard: React.FC<{ width: number; height: number; opacity: number; sho
         const rows = [];
         rows.push(
             <div key="top-labels" className="flex">
-                <div className="w-8 h-8" />
+                <div className="w-16 h-16" />
                 {[...Array(width)].map((_, x) => (
                     <ChessboardLabel key={`top-${x}`} label={String.fromCharCode(65 + x)} />
                 ))}
-                <div className="w-8 h-8" />
+                <div className="w-16 h-16" />
             </div>
         );
 
@@ -101,16 +108,16 @@ const Chessboard: React.FC<{ width: number; height: number; opacity: number; sho
 
         rows.push(
             <div key="bottom-labels" className="flex">
-                <div className="w-8 h-8" />
+                <div className="w-16 h-16" />
                 {[...Array(width)].map((_, x) => (
                     <ChessboardLabel key={`bottom-${x}`} label={String.fromCharCode(65 + x)} />
                 ))}
-                <div className="w-8 h-8" />
+                <div className="w-16 h-16" />
             </div>
         );
 
         return rows;
-    }, [width, height, board, showLabel, closedTour, handleCellClick]);
+    }, [width, height, board, showLabel, handleCellClick]);
 
     const renderPath = useMemo(() => {
         if (path.length === 0) return null;
