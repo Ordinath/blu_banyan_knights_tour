@@ -1,4 +1,4 @@
-import { Algorithm, Board, Chessboard, KnightTourConfig, KnightTourOutput, Move, Position, TieBreakMethod } from './types';
+import { Algorithm, Chessboard, KnightTourConfig, KnightTourOutput, Move, Position, TieBreakMethod } from './types';
 
 /* 
 https://blogs.asarkar.com/assets/docs/algorithms-curated/Warnsdorff-Rule%20Algorithm%20-%20Squirrel+Cull.pdf
@@ -57,6 +57,7 @@ export class KnightTour {
     startX: number;
     startY: number;
     chessboard: Chessboard;
+    center: { x: number; y: number };
     algorithm: Algorithm;
     tieBreakMethod: TieBreakMethod;
     iterationLimit: number;
@@ -64,12 +65,17 @@ export class KnightTour {
     closedTour: boolean;
     moveOrdering: number[];
     iterationCount: number;
+    totalIterationCount: number;
     attemptCount: number;
+    knightMoves: Move[];
+    solution: KnightTourOutput | null;
+    error: string;
 
     constructor(config: KnightTourConfig) {
         this.startX = config.startX;
         this.startY = config.startY;
         this.chessboard = config.chessboard;
+        this.center = { x: config.chessboard.width / 2, y: config.chessboard.height / 2 };
         this.iterationLimit = config.iterationLimit;
         this.attemptLimit = config.attemptLimit;
         this.closedTour = config.closedTour;
@@ -77,254 +83,233 @@ export class KnightTour {
         this.tieBreakMethod = config.tieBreakMethod;
         this.moveOrdering = config.moveOrdering.toString().split('').map(Number);
         this.iterationCount = 0;
+        this.totalIterationCount = 0;
         this.attemptCount = 0;
+        this.knightMoves = POSSIBLE_KNIGHT_MOVES;
+        this.solution = null;
+        this.error = '';
+
+        // console.log(config);
     }
 
-    async solveKnightTour(): Promise<KnightTourOutput> {
-        // const knightTour = new KnightTour(config);
-
-        // const board: Board = [...Array(config.chessboard.width)].map(() => Array(config.chessboard.height).fill(null));
-        // const path: Position[] = [];
-
-        // // add initial position to path
-        // path.push({ x: config.startX, y: config.startY });
-        // board[config.startX][config.startY] = 0; // index of the first move
-
-        // let solution: { board: Board; path: Position[] } | null = null;
-        // for (let attempt = 0; attempt < knightTour.attemptLimit; attempt++) {
-        //     knightTour.iterationCount = 0;
-        //     solution = await knightTour.calculateNextMove(board, path);
-        //     if (solution) {
-        //         break;
-        //     }
-        //     knightTour.attemptCount++;
-        //     console.log('Attempt:', knightTour.attemptCount);
-        // }
-
-        // if (!solution) {
-        //     console.log('No solution found');
-        // }
-        // return solution;
-        return { chessboard: null, path: null, message: 'nothin!' };
-    }
-}
-
-export const calculateKnightPath = async (
-    startX = 0,
-    startY = 0,
-    width: number,
-    height: number,
-    iterationLimit: number,
-    attemptLimit: number,
-    closedTour: boolean,
-    algorithm: Algorithm,
-    tieBreakMethod: TieBreakMethod,
-    moveOrdering: number
-) => {
-    console.log(
-        `Calculating ${closedTour ? 'closed' : 'open'} knight tour from:`,
-        startX,
-        startY,
-        'on board:',
-        width,
-        height,
-        'with algorithm:',
-        algorithm,
-        `${algorithm === Algorithm.WARNSDORF ? `and tie break method: ${tieBreakMethod}` : ''}`
-    );
-
-    // If the number of squares on the board configuration is odd and the square clicked was black square, there are no solutions.
-    if ((width * height) % 2 !== 0 && (startX + startY) % 2 !== 0) {
-        return null;
-    }
-
-    const center = { x: width / 2, y: height / 2 };
-    const board: Board = [...Array(width)].map(() => Array(height).fill(null));
-    const path: Position[] = [];
-
-    let moveOrderArray = moveOrdering ? moveOrdering.toString().split('').map(Number) : [1, 2, 3, 4, 5, 6, 7, 8];
-
-    // add initial position to path
-    path.push({ x: startX, y: startY });
-    board[startX][startY] = 0; // index of the first move
-
-    let iterationCount = 0;
-    let attemptCount = 0;
-
-    const isValidMove = (position: Position, board: Board) => {
+    private isValidMove(position: Position): boolean {
         // check if the move is out of boundries of the board
-        if (position.x < 0 || position.x > board.length || position.y < 0 || position.y > board[0].length) {
+        if (position.x < 0 || position.x > this.chessboard.board.length || position.y < 0 || position.y > this.chessboard.board[0].length) {
             return false;
             // check if this square was already visited
-        } else if (board[position.x]?.[position.y] !== null) {
+        } else if (this.chessboard.board[position.x]?.[position.y] !== null) {
             return false;
         } else {
             return true;
         }
-    };
+    }
 
-    const calculateNumberOfValidMoves = (position: Position, board: Board) => {
+    private calculateDegree = (position: Position) => {
         let count = 0;
-        for (let i = 0; i < POSSIBLE_KNIGHT_MOVES.length; i++) {
-            const possibleMove = POSSIBLE_KNIGHT_MOVES[i];
+        for (let i = 0; i < this.knightMoves.length; i++) {
+            const possibleMove = this.knightMoves[i];
             const newX = position.x + possibleMove.x;
             const newY = position.y + possibleMove.y;
 
-            const newPosition = { x: newX, y: newY };
+            const newPosition = { x: newX, y: newY, move: possibleMove };
 
-            if (isValidMove(newPosition, board)) {
+            if (this.isValidMove(newPosition)) {
                 count++;
             }
         }
         return count;
     };
 
-    const calculateNextMove = async (board: Board, path: Position[]): Promise<{ board: Board; path: Position[] } | null> => {
-        iterationCount++;
-
-        if (iterationCount % (iterationLimit / 100) === 0) {
-            console.log('iteration:', iterationCount);
-        }
-        if (iterationCount > iterationLimit) {
+    private async calculateNextMove(path: Position[]): Promise<Position[] | null> {
+        if (this.iterationCount > this.iterationLimit) {
             return null;
         }
-        // if the path array length === number of squares on the board
-        if (path.length === board.length * board[0].length) {
-            if (closedTour) {
+
+        this.iterationCount++;
+
+        // base case - if the path array length === number of squares on the board
+        if (path.length === this.chessboard.width * this.chessboard.height) {
+            // if closed tour option is selected, check if the last move can move to the initial position
+            if (this.closedTour) {
                 // check if the last move can move to the initial position
                 const lastPosition = path[path.length - 1];
                 const firstPosition = path[0];
-                for (let i = 0; i < POSSIBLE_KNIGHT_MOVES.length; i++) {
-                    const possibleMove = POSSIBLE_KNIGHT_MOVES[i];
+                for (let i = 0; i < this.knightMoves.length; i++) {
+                    const possibleMove = this.knightMoves[i];
                     const newX = lastPosition.x + possibleMove.x;
                     const newY = lastPosition.y + possibleMove.y;
 
-                    const newPosition = { x: newX, y: newY };
+                    const newPosition = { x: newX, y: newY, move: possibleMove };
 
                     if (newPosition.x === firstPosition.x && newPosition.y === firstPosition.y) {
                         path.push(newPosition);
-                        return { board, path };
+                        return path;
                     }
                 }
                 return null;
             } else {
-                return { board, path };
+                return path;
             }
         }
+
         const currentPosition = path[path.length - 1];
 
-        if (algorithm === Algorithm.BRUTEFORCE) {
-            for (let i = 0; i < POSSIBLE_KNIGHT_MOVES.length; i++) {
-                const possibleMove = POSSIBLE_KNIGHT_MOVES[i];
+        // potential refactor later
+        if (this.algorithm === Algorithm.BRUTEFORCE) {
+            for (let i = 0; i < this.knightMoves.length; i++) {
+                const possibleMove = this.knightMoves[i];
                 const newX = currentPosition.x + possibleMove.x;
                 const newY = currentPosition.y + possibleMove.y;
 
-                const newPosition = { x: newX, y: newY };
+                const newPosition = { x: newX, y: newY, move: possibleMove };
 
-                if (isValidMove(newPosition, board)) {
-                    board[newPosition.x][newPosition.y] = path.length;
-                    const result = await calculateNextMove(board, [...path, newPosition]);
+                if (this.isValidMove(newPosition)) {
+                    this.chessboard.board[newPosition.x][newPosition.y] = path.length;
+                    const result = await this.calculateNextMove([...path, newPosition]);
 
                     if (result) {
                         return result;
-                    } else {
-                        board[newPosition.x][newPosition.y] = null;
                     }
+
+                    this.chessboard.board[newPosition.x][newPosition.y] = null;
                 }
             }
-
             return null;
-        } else if (algorithm === Algorithm.MOVE_ORDERING) {
-            for (let i = 0; i < moveOrderArray.length; i++) {
-                const currentMoveOrder = moveOrderArray[i];
-                const possibleMove = POSSIBLE_KNIGHT_MOVES.find((move) => move.order === currentMoveOrder);
+        }
+
+        if (this.algorithm === Algorithm.MOVE_ORDERING) {
+            for (let i = 0; i < this.moveOrdering.length; i++) {
+                const currentMoveOrder = this.moveOrdering[i];
+                const possibleMove = this.knightMoves.find((move) => move.order === currentMoveOrder);
                 if (!possibleMove) {
                     continue;
                 }
                 const newX = currentPosition.x + possibleMove.x;
                 const newY = currentPosition.y + possibleMove.y;
 
-                const newPosition = { x: newX, y: newY };
+                const newPosition = { x: newX, y: newY, move: possibleMove };
 
-                if (isValidMove(newPosition, board)) {
-                    board[newPosition.x][newPosition.y] = path.length;
-                    const result = await calculateNextMove(board, [...path, newPosition]);
+                if (this.isValidMove(newPosition)) {
+                    this.chessboard.board[newPosition.x][newPosition.y] = path.length;
+                    const result = await this.calculateNextMove([...path, newPosition]);
 
                     if (result) {
                         return result;
-                    } else {
-                        board[newPosition.x][newPosition.y] = null;
                     }
+
+                    this.chessboard.board[newPosition.x][newPosition.y] = null;
                 }
             }
-        } else if (algorithm === Algorithm.WARNSDORF) {
-            // identify candidate moves
-            let candidateMoves = [];
 
-            for (let i = 0; i < POSSIBLE_KNIGHT_MOVES.length; i++) {
-                const possibleMove = POSSIBLE_KNIGHT_MOVES[i];
+            return null;
+        }
+
+        if (this.algorithm === Algorithm.WARNSDORF) {
+            // identify candidate moves
+            let candidateMoves: { newPosition: Position; degree: number }[] = [];
+            // get the number of valid moves for each candidate move per Warnsdorff's Rule
+            for (let i = 0; i < this.knightMoves.length; i++) {
+                const possibleMove = this.knightMoves[i];
                 const newX = currentPosition.x + possibleMove.x;
                 const newY = currentPosition.y + possibleMove.y;
 
                 const newPosition = { x: newX, y: newY, move: possibleMove };
 
-                if (isValidMove(newPosition, board)) {
-                    const countOfValidMovesFromNewPosition = calculateNumberOfValidMoves(newPosition, board);
-                    candidateMoves.push({ move: newPosition, count: countOfValidMovesFromNewPosition });
+                if (this.isValidMove(newPosition)) {
+                    const newPositionDegree = this.calculateDegree(newPosition);
+                    candidateMoves.push({ newPosition, degree: newPositionDegree });
                 }
             }
 
             if (candidateMoves.length !== 0) {
                 // sort the moves by the number of valid moves
-                candidateMoves.sort((a, b) => a.count - b.count);
+                candidateMoves.sort((a, b) => a.degree - b.degree);
+                const smallestDegree = candidateMoves[0].degree;
+                let movesWithSmallestDegree = candidateMoves.filter((move) => move.degree === smallestDegree);
+
                 // tie breaking methods
-                if (tieBreakMethod === TieBreakMethod.FIRST) {
-                    // do nothing
-                } else if (tieBreakMethod === TieBreakMethod.RANDOM) {
+
+                if (this.tieBreakMethod === TieBreakMethod.FIRST || this.tieBreakMethod === TieBreakMethod.MOVE_ORDERING) {
+                    // do nothing, tie breaking is done by default ordering 12345678
+                    // move ordering tie break
+
+                    if (movesWithSmallestDegree.length > 1) {
+                        movesWithSmallestDegree = movesWithSmallestDegree.sort((a, b) => {
+                            if (this.tieBreakMethod === TieBreakMethod.MOVE_ORDERING) {
+                                let orderA = this.moveOrdering.indexOf(a.newPosition.move!.order);
+                                let orderB = this.moveOrdering.indexOf(b.newPosition.move!.order);
+                                return orderA - orderB;
+                            } else if (this.tieBreakMethod === TieBreakMethod.FIRST) {
+                                let orderA = [1, 2, 3, 4, 5, 6, 7, 8].indexOf(a.newPosition.move!.order);
+                                let orderB = [1, 2, 3, 4, 5, 6, 7, 8].indexOf(b.newPosition.move!.order);
+                                return orderA - orderB;
+                            }
+                            return 0;
+                        });
+                        candidateMoves = movesWithSmallestDegree.concat(candidateMoves.filter((move) => move.degree !== smallestDegree));
+                    }
+                }
+
+                if (this.tieBreakMethod === TieBreakMethod.RANDOM) {
                     // identify the candidates with the same smallest number of valid moves
                     // and shuffle them randomly at the beginning of the array for lulz
-                    const smallestCount = candidateMoves[0].count;
-                    let movesWithSmallestCount = candidateMoves.filter((move) => move.count === smallestCount);
-                    if (movesWithSmallestCount.length > 1) {
-                        movesWithSmallestCount = movesWithSmallestCount.sort(() => Math.random() - 0.5);
-                        candidateMoves = movesWithSmallestCount.concat(candidateMoves.filter((move) => move.count !== smallestCount));
+                    if (movesWithSmallestDegree.length > 1) {
+                        movesWithSmallestDegree = movesWithSmallestDegree.sort(() => Math.random() - 0.5);
+                        candidateMoves = movesWithSmallestDegree.concat(candidateMoves.filter((move) => move.degree !== smallestDegree));
                     }
-                } else if (tieBreakMethod === TieBreakMethod.POHL) {
+                }
+
+                if (this.tieBreakMethod === TieBreakMethod.POHL) {
                     // Pohl's Tie-Breaking Rule - https://dl.acm.org/doi/pdf/10.1145/363427.363463
                     // we dive one level deeper and calculate the number of valid moves from the next move
-                    // for each candidate move with the smallest number of valid moves
-                    const smallestCount = candidateMoves[0].count;
-                    let movesWithSmallestCount = candidateMoves.filter((move) => move.count === smallestCount);
-                    if (movesWithSmallestCount.length > 1) {
-                        for (let i = 0; i < movesWithSmallestCount.length; i++) {
-                            const move = movesWithSmallestCount[i].move;
-                            const countOfValidMovesFromNewPosition = calculateNumberOfValidMoves(move, board);
-                            movesWithSmallestCount[i].count = countOfValidMovesFromNewPosition;
+                    // for each candidate move with the smallest number of valid moves (degree)
+                    if (movesWithSmallestDegree.length > 1) {
+                        for (let i = 0; i < movesWithSmallestDegree.length; i++) {
+                            // update the board with the new move
+                            this.chessboard.board[movesWithSmallestDegree[i].newPosition.x][movesWithSmallestDegree[i].newPosition.y] = path.length + 1;
+
+                            for (let j = 0; j < this.knightMoves.length; j++) {
+                                const possibleMove = this.knightMoves[j];
+                                const newX = movesWithSmallestDegree[i].newPosition.x + possibleMove.x;
+                                const newY = movesWithSmallestDegree[i].newPosition.y + possibleMove.y;
+
+                                const move = { x: newX, y: newY, move: possibleMove };
+
+                                if (this.isValidMove(move)) {
+                                    // decrease the degree of the move
+                                    movesWithSmallestDegree[i].degree--;
+                                }
+                            }
+
+                            // remove the move from the board
+                            this.chessboard.board[movesWithSmallestDegree[i].newPosition.x][movesWithSmallestDegree[i].newPosition.y] = null;
                         }
-                        movesWithSmallestCount.sort((a, b) => {
-                            let result = a.count - b.count;
-                            // if the number of valid moves is equal, we randomize
+
+                        movesWithSmallestDegree.sort((a, b) => {
+                            let result = a.degree - b.degree;
+                            // if the number of valid moves is still equal, we randomize
                             if (result === 0) {
                                 return Math.random() - 0.5;
                             } else {
                                 return result;
                             }
                         });
-                        candidateMoves = movesWithSmallestCount.concat(candidateMoves.filter((move) => move.count !== smallestCount));
+
+                        candidateMoves = movesWithSmallestDegree.concat(candidateMoves.filter((move) => move.degree !== smallestDegree));
                     }
-                } else if (tieBreakMethod === TieBreakMethod.FURTHEST_FROM_CENTER || tieBreakMethod === TieBreakMethod.CLOSEST_TO_CENTER) {
+                }
+
+                if (this.tieBreakMethod === TieBreakMethod.FURTHEST_FROM_CENTER || this.tieBreakMethod === TieBreakMethod.CLOSEST_TO_CENTER) {
                     // furthest - Roth rule - https://www.wolframcloud.com/objects/nbarch/2018/10/2018-10-10r6l3m/Knight.nb
                     // furthest or closest from the center
-                    const smallestCount = candidateMoves[0].count;
-                    let movesWithSmallestCount = candidateMoves.filter((move) => move.count === smallestCount);
-                    if (movesWithSmallestCount.length > 1) {
-                        movesWithSmallestCount = movesWithSmallestCount.sort((a, b) => {
+                    if (movesWithSmallestDegree.length > 1) {
+                        movesWithSmallestDegree = movesWithSmallestDegree.sort((a, b) => {
                             // no need to square root for comparison
-                            let distanceA = (a.move.x - center.x) ** 2 + (a.move.y - center.y) ** 2;
-                            let distanceB = (b.move.x - center.x) ** 2 + (b.move.y - center.y) ** 2;
+                            let distanceA = (a.newPosition.x - this.center.x) ** 2 + (a.newPosition.y - this.center.y) ** 2;
+                            let distanceB = (b.newPosition.x - this.center.x) ** 2 + (b.newPosition.y - this.center.y) ** 2;
 
                             let result =
-                                tieBreakMethod === TieBreakMethod.FURTHEST_FROM_CENTER
+                                this.tieBreakMethod === TieBreakMethod.FURTHEST_FROM_CENTER
                                     ? distanceB - distanceA // For furthest from center, sort descending
                                     : distanceA - distanceB; // For closest to center, sort ascending
 
@@ -335,34 +320,21 @@ export const calculateKnightPath = async (
                                 return result;
                             }
                         });
-                        candidateMoves = movesWithSmallestCount.concat(candidateMoves.filter((move) => move.count !== smallestCount));
-                    }
-                } else if (tieBreakMethod === TieBreakMethod.MOVE_ORDERING) {
-                    // move ordering tie break
-                    const smallestCount = candidateMoves[0].count;
-                    let movesWithSmallestCount = candidateMoves.filter((move) => move.count === smallestCount);
-
-                    if (movesWithSmallestCount.length > 1) {
-                        movesWithSmallestCount = movesWithSmallestCount.sort((a, b) => {
-                            let orderA = moveOrderArray.indexOf(a.move.move.order);
-                            let orderB = moveOrderArray.indexOf(b.move.move.order);
-                            return orderA - orderB;
-                        });
-                        candidateMoves = movesWithSmallestCount.concat(candidateMoves.filter((move) => move.count !== smallestCount));
+                        candidateMoves = movesWithSmallestDegree.concat(candidateMoves.filter((move) => move.degree !== smallestDegree));
                     }
                 }
             }
 
             for (let i = 0; i < candidateMoves.length; i++) {
-                const move = candidateMoves[i].move;
+                const newPosition = candidateMoves[i].newPosition;
 
-                board[move.x][move.y] = path.length;
-                const result = await calculateNextMove(board, [...path, move]);
+                this.chessboard.board[newPosition.x][newPosition.y] = path.length;
+                const result = await this.calculateNextMove([...path, newPosition]);
 
                 if (result) {
                     return result;
                 } else {
-                    board[move.x][move.y] = null;
+                    this.chessboard.board[newPosition.x][newPosition.y] = null;
                 }
             }
 
@@ -370,21 +342,51 @@ export const calculateKnightPath = async (
         }
 
         return null;
-    };
+    }
 
-    let solution: { board: Board; path: Position[] } | null = null;
-    for (let attempt = 0; attempt < attemptLimit; attempt++) {
-        iterationCount = 0;
-        solution = await calculateNextMove(board, path);
-        if (solution) {
-            break;
+    async solveKnightTour(): Promise<KnightTourOutput> {
+        // handle proved edge cases with no solutions
+        if ((this.chessboard.width * this.chessboard.height) % 2 !== 0 && (this.startX + this.startY) % 2 !== 0) {
+            return { chessboard: null, path: null, success: false, message: 'No solutions for odd board size and black square start position' };
         }
-        attemptCount++;
-        console.log('Attempt:', attemptCount);
-    }
 
-    if (!solution) {
-        console.log('No solution found');
+        if (this.closedTour && (this.chessboard.width * this.chessboard.height) % 2 !== 0) {
+            return { chessboard: null, path: null, success: false, message: 'No solutions for odd board size and closed tour option' };
+        }
+
+        // initialize
+        const board = this.chessboard.board;
+        const path: Position[] = [];
+
+        path.push({ x: this.startX, y: this.startY, move: null }); // add initial position to path array
+        board[this.startX][this.startY] = 0; // index of the first move
+
+        let solutionPath: Position[] | null = null;
+        this.totalIterationCount = 0;
+
+        for (this.attemptCount = 0; this.attemptCount < this.attemptLimit; this.attemptCount++) {
+            this.iterationCount = 0;
+            solutionPath = await this.calculateNextMove(path);
+
+            this.totalIterationCount += this.iterationCount;
+
+            if (solutionPath) {
+                return {
+                    chessboard: this.chessboard,
+                    path: solutionPath,
+                    success: true,
+                    message: `Tour completed in ${this.iterationCount} iterations on attempt ${this.attemptCount + 1}. Total iterations: ${
+                        this.totalIterationCount
+                    }.`,
+                };
+            }
+        }
+
+        return {
+            chessboard: this.chessboard,
+            path: null,
+            success: false,
+            message: `No solution found after ${this.attemptCount} attempts. Total iterations: ${this.totalIterationCount}.`,
+        };
     }
-    return solution;
-};
+}

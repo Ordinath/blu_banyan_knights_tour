@@ -19,8 +19,10 @@ interface ChessboardComponentProps {
     moveOrdering: number;
 }
 
-const getLabel = (x: number, y: number) => {
-    return `${String.fromCharCode(65 + x)}${y + 1}`;
+const getLabel = (x: number, y: number, chessboard: Chessboard) => {
+    const letter = String.fromCharCode(65 + x);
+    const number = chessboard.height - y;
+    return `${letter}${number}`;
 };
 
 const ChessboardComponent: React.FC<ChessboardComponentProps> = ({
@@ -52,7 +54,7 @@ const ChessboardComponent: React.FC<ChessboardComponentProps> = ({
             const config: KnightTourConfig = {
                 startX: x,
                 startY: y,
-                chessboard,
+                chessboard: new Chessboard(width, height),
                 iterationLimit,
                 attemptLimit,
                 closedTour,
@@ -66,58 +68,64 @@ const ChessboardComponent: React.FC<ChessboardComponentProps> = ({
 
             console.log('Knight Path Result:', result);
 
-            if (result.chessboard && result.path) {
+            if (result.success && result.chessboard && result.path) {
                 setChessboard(result.chessboard);
-                result.path.forEach((position) => (position.label = getLabel(position.x, position.y)));
+                result.path.forEach((position) => (position.label = getLabel(position.x, position.y, result.chessboard!)));
                 setPath(result.path);
             } else {
                 setChessboard(new Chessboard(width, height));
                 setPath([]);
             }
 
-            setMessage(result.message);
+            setMessage(result.message!);
         },
-        [width, height, iterationLimit, attemptLimit, closedTour, algorithm, tieBreakMethod, moveOrdering, chessboard]
+        [width, height, iterationLimit, attemptLimit, closedTour, algorithm, tieBreakMethod, moveOrdering]
     );
 
-    const getAlphabetLabel = (index: number) => String.fromCharCode(65 + index);
+    const getAlphabetLabel = useCallback((index: number) => String.fromCharCode(65 + index), []);
 
-    const getAlphabetLabelsRow = (chessboard: Chessboard): (EmptyCell | LabelCell)[] => {
-        let cells: (EmptyCell | LabelCell)[] = [
-            { type: CellType.EMPTY, cellSize: squareSize },
-            ...[...Array(chessboard.width)].map(
-                (_, index) =>
-                    ({
-                        type: CellType.LABEL,
-                        cellSize: squareSize,
-                        label: getAlphabetLabel(index),
-                    } as LabelCell)
-            ),
-            { type: CellType.EMPTY, cellSize: squareSize },
-        ];
-        return cells;
-    };
+    const getAlphabetLabelsRow = useCallback(
+        (chessboard: Chessboard): (EmptyCell | LabelCell)[] => {
+            let cells: (EmptyCell | LabelCell)[] = [
+                { type: CellType.EMPTY, cellSize: squareSize },
+                ...[...Array(chessboard.width)].map(
+                    (_, index) =>
+                        ({
+                            type: CellType.LABEL,
+                            cellSize: squareSize,
+                            label: getAlphabetLabel(index),
+                        } as LabelCell)
+                ),
+                { type: CellType.EMPTY, cellSize: squareSize },
+            ];
+            return cells;
+        },
+        [squareSize, getAlphabetLabel]
+    );
 
-    const getNumeratedChessboardRow = (y: number, chessboard: Chessboard): (ChessSquareCell | LabelCell)[] => {
-        let cells: (ChessSquareCell | LabelCell)[] = [
-            { type: CellType.LABEL, cellSize: squareSize, label: (y + 1).toString() },
-            ...[...Array(chessboard.width)].map(
-                (_, x) =>
-                    ({
-                        type: CellType.CHESS_SQUARE,
-                        cellSize: squareSize,
-                        x,
-                        y,
-                        cellValue: chessboard.board[x][y],
-                        onClick: handleCellClick,
-                        showLabel: showLabel,
-                    } as ChessSquareCell)
-            ),
-            { type: CellType.LABEL, cellSize: squareSize, label: (y + 1).toString() },
-        ];
+    const getNumeratedChessboardRow = useCallback(
+        (y: number, chessboard: Chessboard): (ChessSquareCell | LabelCell)[] => {
+            let cells: (ChessSquareCell | LabelCell)[] = [
+                { type: CellType.LABEL, cellSize: squareSize, label: (y + 1).toString() },
+                ...[...Array(chessboard.width)].map(
+                    (_, x) =>
+                        ({
+                            type: CellType.CHESS_SQUARE,
+                            cellSize: squareSize,
+                            x,
+                            y,
+                            cellValue: chessboard.board[x][y],
+                            onClick: handleCellClick,
+                            showLabel: showLabel,
+                        } as ChessSquareCell)
+                ),
+                { type: CellType.LABEL, cellSize: squareSize, label: (y + 1).toString() },
+            ];
 
-        return cells;
-    };
+            return cells;
+        },
+        [squareSize, showLabel, handleCellClick]
+    );
 
     const renderChessboard = useMemo(() => {
         const rows = [];
@@ -131,7 +139,7 @@ const ChessboardComponent: React.FC<ChessboardComponentProps> = ({
         rows.push(getAlphabetLabelsRow(chessboard));
 
         return rows.map((row, index) => <ChessboardRow key={index} cells={row} cellSize={squareSize} />);
-    }, [chessboard, showLabel, squareSize, handleCellClick]);
+    }, [chessboard, squareSize, getAlphabetLabelsRow, getNumeratedChessboardRow]);
 
     const renderPath = useMemo(() => {
         if (path.length === 0) return null;
@@ -156,7 +164,7 @@ const ChessboardComponent: React.FC<ChessboardComponentProps> = ({
                 {pathElements}
             </svg>
         );
-    }, [path, width, height, opacity]);
+    }, [path, width, height, opacity, squareSize]);
 
     return (
         <div className="relative flex flex-col items-center">

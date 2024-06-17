@@ -2,6 +2,7 @@ export type Position = {
     x: number;
     y: number;
     label?: string;
+    move: Move | null;
 };
 
 export type Move = {
@@ -9,6 +10,8 @@ export type Move = {
     y: number;
     order: number;
 };
+
+export type Board = (number | null)[][];
 
 export class Chessboard {
     width: number;
@@ -34,28 +37,12 @@ export type KnightTourConfig = {
     moveOrdering: number;
 };
 
-export type Board = (number | null)[][];
-
-export enum Algorithm {
-    BRUTEFORCE = 'bruteforce',
-    WARNSDORF = 'warnsdorf',
-    MOVE_ORDERING = 'move_ordering',
-}
-
-export enum TieBreakMethod {
-    FIRST = 'first',
-    RANDOM = 'random',
-    POHL = 'pohl',
-    CLOSEST_TO_CENTER = 'closest_to_center',
-    FURTHEST_FROM_CENTER = 'furthest_from_center',
-    MOVE_ORDERING = 'move_ordering',
-}
-
-export enum CellType {
-    EMPTY = 'empty',
-    LABEL = 'label',
-    CHESS_SQUARE = 'chess_square',
-}
+export type KnightTourOutput = {
+    chessboard: Chessboard | null;
+    path: Position[] | null;
+    success?: boolean;
+    message: string;
+};
 
 export type BaseCell = {
     type: CellType;
@@ -80,8 +67,23 @@ export type ChessSquareCell = BaseCell & {
     showLabel: boolean;
 };
 
-export type KnightTourOutput = {
-    chessboard: Chessboard | null;
-    path: Position[] | null;
-    message: string;
-};
+export enum Algorithm {
+    BRUTEFORCE = 'bruteforce',
+    WARNSDORF = 'warnsdorf',
+    MOVE_ORDERING = 'move_ordering',
+}
+
+export enum TieBreakMethod {
+    FIRST = 'first',
+    RANDOM = 'random',
+    POHL = 'pohl',
+    CLOSEST_TO_CENTER = 'closest_to_center',
+    FURTHEST_FROM_CENTER = 'furthest_from_center',
+    MOVE_ORDERING = 'move_ordering',
+}
+
+export enum CellType {
+    EMPTY = 'empty',
+    LABEL = 'label',
+    CHESS_SQUARE = 'chess_square',
+}
