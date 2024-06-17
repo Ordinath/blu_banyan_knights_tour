@@ -2,14 +2,13 @@ import React, { useEffect, useState } from 'react';
 import Chessboard from './components/Chessboard';
 import { Algorithm, TieBreakMethod } from './types';
 
-const SQUARE_SIZE = 64;
-
 function App() {
     const [width, setWidth] = useState<number>(8);
     const [height, setHeight] = useState<number>(8);
 
     const [opacity, setOpacity] = useState<number>(0.5);
     const [showLabel, setShowLabel] = useState<boolean>(true);
+    const [squareSize, setSquareSize] = useState<number>(64);
 
     const [iterationLimit, setIterationLimit] = useState<number>(64);
     const [attemptLimit, setAttemptLimit] = useState<number>(1);
@@ -59,6 +58,10 @@ function App() {
         setMoveOrdering(Number(e.target.value));
     };
 
+    const handleSquareSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSquareSize(Number(e.target.value));
+    };
+
     useEffect(() => {
         setIterationLimit(width * height);
     }, [width, height]);
@@ -77,6 +80,8 @@ function App() {
                 <input type="range" min="0" max="1" step="0.1" value={opacity} onChange={handleOpacityChange} />
                 <label className="ml-4 mr-2">Show Labels:</label>
                 <input type="checkbox" checked={showLabel} onChange={handleShowLabelChange} />
+                <label className="ml-4 mr-2">Square Size:</label>
+                <input type="range" min={16} max={128} step={16} value={squareSize} onChange={handleSquareSizeChange} />
             </div>
             <div className="mb-4">
                 <label className="mr-2">Iteration Limit:</label>
@@ -124,7 +129,7 @@ function App() {
                 height={height}
                 opacity={opacity}
                 showLabel={showLabel}
-                squareSize={SQUARE_SIZE}
+                squareSize={squareSize}
                 iterationLimit={iterationLimit}
                 attemptLimit={attemptLimit}
                 closedTour={closedTour}
