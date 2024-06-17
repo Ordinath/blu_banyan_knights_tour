@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Chessboard from './components/Chessboard';
 import { Algorithm, TieBreakMethod } from './types';
 
+const SQUARE_SIZE = 64;
+
 function App() {
     const [width, setWidth] = useState<number>(8);
     const [height, setHeight] = useState<number>(8);
@@ -122,6 +124,7 @@ function App() {
                 height={height}
                 opacity={opacity}
                 showLabel={showLabel}
+                squareSize={SQUARE_SIZE}
                 iterationLimit={iterationLimit}
                 attemptLimit={attemptLimit}
                 closedTour={closedTour}

@@ -53,6 +53,7 @@ const POSSIBLE_KNIGHT_MOVES: Move[] = [
     { x: -1, y: 2, order: 8 },
 ];
 
+
 export const calculateKnightPath = async (
     startX = 0,
     startY = 0,

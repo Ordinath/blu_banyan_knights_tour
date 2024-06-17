@@ -1,60 +1,15 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { calculateKnightPath } from '../knightTour';
-import { Algorithm, Board, Position, TieBreakMethod } from '../types';
-
-const getLabel = (x: number, y: number, board: Board) => {
-    const letter = String.fromCharCode(65 + x);
-    const number = board[0].length - y;
-    return `${letter}${number}`;
-};
-
-const ChessboardLabel: React.FC<{ label: string }> = ({ label }) => <div className="w-16 h-16 flex items-center justify-center">{label}</div>;
-
-const ChessboardCell: React.FC<{ x: number; y: number; onClick: (x: number, y: number) => void; cellValue: number | null; showLabel: boolean }> = ({
-    x,
-    y,
-    onClick,
-    cellValue,
-    showLabel,
-}) => (
-    <div
-        className={`w-16 h-16 flex items-center justify-center cursor-pointer ${(x + y) % 2 === 0 ? 'bg-gray-200' : 'bg-gray-800 text-white'}`}
-        onClick={() => onClick(x, y)}
-    >
-        {cellValue !== null && showLabel ? cellValue + 1 : ''}
-    </div>
-);
-
-const ChessboardRow: React.FC<{ y: number; width: number; height: number; onClick: (x: number, y: number) => void; board: Board; showLabel: boolean }> = ({
-    y,
-    width,
-    height,
-    onClick,
-    board,
-    showLabel,
-}) => (
-    <div className="flex">
-        <ChessboardLabel label={`${height - y}`} />
-        {[...Array(width)].map((_, x) => (
-            <ChessboardCell
-                key={x}
-                x={x}
-                y={y}
-                onClick={onClick}
-                cellValue={board[x] && board[x][y] !== undefined ? board[x][y] : null}
-                showLabel={showLabel}
-            />
-        ))}
-        <ChessboardLabel label={`${height - y}`} />
-    </div>
-);
+// import { calculateKnightPath } from '../knightTour';
+import { Algorithm, Position, TieBreakMethod, Chessboard, EmptyCell, LabelCell, ChessSquareCell, CellType } from '../types';
+import ChessboardRow from './ChessboardRow';
 
 // Chessboard interface
-interface ChessboardProps {
+interface ChessboardComponentProps {
     width: number;
     height: number;
     opacity: number;
     showLabel: boolean;
+    squareSize: number;
     iterationLimit: number;
     attemptLimit: number;
     closedTour: boolean;
@@ -63,11 +18,12 @@ interface ChessboardProps {
     moveOrdering: number;
 }
 
-const Chessboard: React.FC<ChessboardProps> = ({
+const ChessboardComponent: React.FC<ChessboardComponentProps> = ({
     width,
     height,
     opacity,
     showLabel,
+    squareSize,
     iterationLimit,
     attemptLimit,
     closedTour,
@@ -75,11 +31,11 @@ const Chessboard: React.FC<ChessboardProps> = ({
     tieBreakMethod,
     moveOrdering,
 }) => {
-    const [board, setBoard] = useState<Board>([]);
+    const [chessboard, setChessboard] = useState<Chessboard>(new Chessboard(width, height));
     const [path, setPath] = useState<Position[]>([]);
 
     useEffect(() => {
-        setBoard([...Array(height)].map(() => Array(width).fill(null)));
+        setChessboard(new Chessboard(width, height));
         setPath([]);
     }, [width, height]);
 
@@ -90,72 +46,95 @@ const Chessboard: React.FC<ChessboardProps> = ({
             const startX = x;
             const startY = y;
 
-            const knightPathResult = await calculateKnightPath(
-                startX,
-                startY,
-                width,
-                height,
-                iterationLimit,
-                attemptLimit,
-                closedTour,
-                algorithm,
-                tieBreakMethod,
-                moveOrdering
-            );
+            // const knightPathResult = await calculateKnightPath(
+            //     startX,
+            //     startY,
+            //     width,
+            //     height,
+            //     iterationLimit,
+            //     attemptLimit,
+            //     closedTour,
+            //     algorithm,
+            //     tieBreakMethod,
+            //     moveOrdering
+            // );
 
-            console.log('Knight Path Result:', knightPathResult);
+            // console.log('Knight Path Result:', knightPathResult);
 
-            if (knightPathResult) {
-                setBoard(knightPathResult.board);
-                knightPathResult.path.forEach((position) => (position.label = getLabel(position.x, position.y, board)));
-                setPath(knightPathResult.path);
-            } else {
-                setBoard([...Array(width)].map(() => Array(height).fill(null)));
-                setPath([]);
-                alert('No solution found from this position.');
-            }
+            // if (knightPathResult) {
+            //     setBoard(knightPathResult.board);
+            //     knightPathResult.path.forEach((position) => (position.label = getLabel(position.x, position.y, board)));
+            //     setPath(knightPathResult.path);
+            // } else {
+            //     setBoard([...Array(width)].map(() => Array(height).fill(null)));
+            //     setPath([]);
+            //     alert('No solution found from this position.');
+            // }
         },
-        [width, height, iterationLimit, attemptLimit, closedTour, algorithm, tieBreakMethod, moveOrdering, board]
+        [width, height, iterationLimit, attemptLimit, closedTour, algorithm, tieBreakMethod, moveOrdering, chessboard]
     );
+
+    const getAlphabetLabel = (index: number) => String.fromCharCode(65 + index);
+
+    const getAlphabetLabelsRow = (chessboard: Chessboard): (EmptyCell | LabelCell)[] => {
+        let cells: (EmptyCell | LabelCell)[] = [
+            { type: CellType.EMPTY, cellSize: squareSize },
+            ...[...Array(chessboard.width)].map(
+                (_, index) =>
+                    ({
+                        type: CellType.LABEL,
+                        cellSize: squareSize,
+                        label: getAlphabetLabel(index),
+                    } as LabelCell)
+            ),
+            { type: CellType.EMPTY, cellSize: squareSize },
+        ];
+        return cells;
+    };
+
+    const getNumeratedChessboardRow = (y: number, chessboard: Chessboard): (ChessSquareCell | LabelCell)[] => {
+        let cells: (ChessSquareCell | LabelCell)[] = [
+            { type: CellType.LABEL, cellSize: squareSize, label: (y + 1).toString() },
+            ...[...Array(chessboard.width)].map(
+                (_, x) =>
+                    ({
+                        type: CellType.CHESS_SQUARE,
+                        cellSize: squareSize,
+                        x,
+                        y,
+                        cellValue: chessboard.board[x][y],
+                        onClick: handleCellClick,
+                        showLabel: showLabel,
+                    } as ChessSquareCell)
+            ),
+            { type: CellType.LABEL, cellSize: squareSize, label: (y + 1).toString() },
+        ];
+
+        return cells;
+    };
 
     const renderChessboard = useMemo(() => {
         const rows = [];
-        rows.push(
-            <div key="top-labels" className="flex">
-                <div className="w-16 h-16" />
-                {[...Array(width)].map((_, x) => (
-                    <ChessboardLabel key={`top-${x}`} label={String.fromCharCode(65 + x)} />
-                ))}
-                <div className="w-16 h-16" />
-            </div>
-        );
 
-        for (let y = 0; y < height; y++) {
-            rows.push(<ChessboardRow key={y} y={y} width={width} height={height} onClick={handleCellClick} board={board} showLabel={showLabel} />);
+        rows.push(getAlphabetLabelsRow(chessboard));
+
+        for (let y = 0; y < chessboard.height; y++) {
+            rows.push(getNumeratedChessboardRow(y, chessboard));
         }
 
-        rows.push(
-            <div key="bottom-labels" className="flex">
-                <div className="w-16 h-16" />
-                {[...Array(width)].map((_, x) => (
-                    <ChessboardLabel key={`bottom-${x}`} label={String.fromCharCode(65 + x)} />
-                ))}
-                <div className="w-16 h-16" />
-            </div>
-        );
+        rows.push(getAlphabetLabelsRow(chessboard));
 
-        return rows;
-    }, [width, height, board, showLabel, handleCellClick]);
+        return rows.map((row, index) => <ChessboardRow key={index} cells={row} cellSize={squareSize} />);
+    }, [chessboard, showLabel, squareSize, handleCellClick]);
 
     const renderPath = useMemo(() => {
         if (path.length === 0) return null;
-        const cellSize = 64; // 16 * 4 for the cell size
-        const offsetX = 64 + 32; // Label Cell + Half of cellSize to center the path line in the cell
-        const offsetY = 64 + 32; // Label Cell + Half of cellSize to center the path line in the cell
+        const offsetX = squareSize + squareSize / 2; // Label Cell + Half of cellSize to center the path line in the cell
+        const offsetY = squareSize + squareSize / 2; // Label Cell + Half of cellSize to center the path line in the cell
 
         const getCoordinates = (position: Position) => {
-            const x = position.x * cellSize + offsetX;
-            const y = position.y * cellSize + offsetY;
+            const x = position.x * squareSize + offsetX;
+            const y = position.y * squareSize + offsetY;
             return { x, y };
         };
 
@@ -167,7 +146,7 @@ const Chessboard: React.FC<ChessboardProps> = ({
         }
 
         return (
-            <svg className="absolute" width={(width + 2) * cellSize} height={(height + 2) * cellSize} style={{ top: 0, left: 0, pointerEvents: 'none' }}>
+            <svg className="absolute" width={(width + 2) * squareSize} height={(height + 2) * squareSize} style={{ top: 0, left: 0, pointerEvents: 'none' }}>
                 {pathElements}
             </svg>
         );
@@ -175,7 +154,7 @@ const Chessboard: React.FC<ChessboardProps> = ({
 
     return (
         <div className="relative flex flex-col items-center">
-            <div className="relative" style={{ width: (width + 2) * 64, height: (height + 2) * 64 }}>
+            <div className="relative" style={{ width: (width + 2) * squareSize, height: (height + 2) * squareSize }}>
                 {renderPath}
                 {renderChessboard}
                 {path.length > 0 && (
@@ -189,4 +168,4 @@ const Chessboard: React.FC<ChessboardProps> = ({
     );
 };
 
-export default Chessboard;
+export default ChessboardComponent;
