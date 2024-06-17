@@ -1,4 +1,4 @@
-import { Algorithm, Board, Move, Position, TieBreakMethod } from './types';
+import { Algorithm, Board, Chessboard, KnightTourConfig, KnightTourOutput, Move, Position, TieBreakMethod } from './types';
 
 /* 
 https://blogs.asarkar.com/assets/docs/algorithms-curated/Warnsdorff-Rule%20Algorithm%20-%20Squirrel+Cull.pdf
@@ -53,6 +53,61 @@ const POSSIBLE_KNIGHT_MOVES: Move[] = [
     { x: -1, y: 2, order: 8 },
 ];
 
+export class KnightTour {
+    startX: number;
+    startY: number;
+    chessboard: Chessboard;
+    algorithm: Algorithm;
+    tieBreakMethod: TieBreakMethod;
+    iterationLimit: number;
+    attemptLimit: number;
+    closedTour: boolean;
+    moveOrdering: number[];
+    iterationCount: number;
+    attemptCount: number;
+
+    constructor(config: KnightTourConfig) {
+        this.startX = config.startX;
+        this.startY = config.startY;
+        this.chessboard = config.chessboard;
+        this.iterationLimit = config.iterationLimit;
+        this.attemptLimit = config.attemptLimit;
+        this.closedTour = config.closedTour;
+        this.algorithm = config.algorithm;
+        this.tieBreakMethod = config.tieBreakMethod;
+        this.moveOrdering = config.moveOrdering.toString().split('').map(Number);
+        this.iterationCount = 0;
+        this.attemptCount = 0;
+    }
+
+    async solveKnightTour(): Promise<KnightTourOutput> {
+        // const knightTour = new KnightTour(config);
+
+        // const board: Board = [...Array(config.chessboard.width)].map(() => Array(config.chessboard.height).fill(null));
+        // const path: Position[] = [];
+
+        // // add initial position to path
+        // path.push({ x: config.startX, y: config.startY });
+        // board[config.startX][config.startY] = 0; // index of the first move
+
+        // let solution: { board: Board; path: Position[] } | null = null;
+        // for (let attempt = 0; attempt < knightTour.attemptLimit; attempt++) {
+        //     knightTour.iterationCount = 0;
+        //     solution = await knightTour.calculateNextMove(board, path);
+        //     if (solution) {
+        //         break;
+        //     }
+        //     knightTour.attemptCount++;
+        //     console.log('Attempt:', knightTour.attemptCount);
+        // }
+
+        // if (!solution) {
+        //     console.log('No solution found');
+        // }
+        // return solution;
+        return { chessboard: null, path: null, message: 'nothin!' };
+    }
+}
 
 export const calculateKnightPath = async (
     startX = 0,

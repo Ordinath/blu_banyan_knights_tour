@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 // import { calculateKnightPath } from '../knightTour';
-import { Algorithm, Position, TieBreakMethod, Chessboard, EmptyCell, LabelCell, ChessSquareCell, CellType } from '../types';
+import { Algorithm, Position, TieBreakMethod, Chessboard, EmptyCell, LabelCell, ChessSquareCell, CellType, KnightTourConfig, KnightTourOutput } from '../types';
 import ChessboardRow from './ChessboardRow';
+import { KnightTour } from '../knightTour';
 
 // Chessboard interface
 interface ChessboardComponentProps {
@@ -18,6 +19,10 @@ interface ChessboardComponentProps {
     moveOrdering: number;
 }
 
+const getLabel = (x: number, y: number) => {
+    return `${String.fromCharCode(65 + x)}${y + 1}`;
+};
+
 const ChessboardComponent: React.FC<ChessboardComponentProps> = ({
     width,
     height,
@@ -33,6 +38,7 @@ const ChessboardComponent: React.FC<ChessboardComponentProps> = ({
 }) => {
     const [chessboard, setChessboard] = useState<Chessboard>(new Chessboard(width, height));
     const [path, setPath] = useState<Position[]>([]);
+    const [message, setMessage] = useState<string>('');
 
     useEffect(() => {
         setChessboard(new Chessboard(width, height));
@@ -43,33 +49,33 @@ const ChessboardComponent: React.FC<ChessboardComponentProps> = ({
         async (x: number, y: number) => {
             console.log('Clicked cell:', x, y);
 
-            const startX = x;
-            const startY = y;
+            const config: KnightTourConfig = {
+                startX: x,
+                startY: y,
+                chessboard,
+                iterationLimit,
+                attemptLimit,
+                closedTour,
+                algorithm,
+                tieBreakMethod,
+                moveOrdering,
+            };
 
-            // const knightPathResult = await calculateKnightPath(
-            //     startX,
-            //     startY,
-            //     width,
-            //     height,
-            //     iterationLimit,
-            //     attemptLimit,
-            //     closedTour,
-            //     algorithm,
-            //     tieBreakMethod,
-            //     moveOrdering
-            // );
+            const knightTour = new KnightTour(config);
+            const result: KnightTourOutput = await knightTour.solveKnightTour();
 
-            // console.log('Knight Path Result:', knightPathResult);
+            console.log('Knight Path Result:', result);
 
-            // if (knightPathResult) {
-            //     setBoard(knightPathResult.board);
-            //     knightPathResult.path.forEach((position) => (position.label = getLabel(position.x, position.y, board)));
-            //     setPath(knightPathResult.path);
-            // } else {
-            //     setBoard([...Array(width)].map(() => Array(height).fill(null)));
-            //     setPath([]);
-            //     alert('No solution found from this position.');
-            // }
+            if (result.chessboard && result.path) {
+                setChessboard(result.chessboard);
+                result.path.forEach((position) => (position.label = getLabel(position.x, position.y)));
+                setPath(result.path);
+            } else {
+                setChessboard(new Chessboard(width, height));
+                setPath([]);
+            }
+
+            setMessage(result.message);
         },
         [width, height, iterationLimit, attemptLimit, closedTour, algorithm, tieBreakMethod, moveOrdering, chessboard]
     );
@@ -157,6 +163,7 @@ const ChessboardComponent: React.FC<ChessboardComponentProps> = ({
             <div className="relative" style={{ width: (width + 2) * squareSize, height: (height + 2) * squareSize }}>
                 {renderPath}
                 {renderChessboard}
+                {message && <div className="text-lg font-bold mt-4">{message}</div>}
                 {path.length > 0 && (
                     <div className="flex flex-col items-center">
                         <div className="text-lg font-bold mt-4">Path:</div>

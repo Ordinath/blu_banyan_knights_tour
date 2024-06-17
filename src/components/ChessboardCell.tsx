@@ -16,6 +16,17 @@ const ChessboardCell: React.FC<ChessboardCellProps> = (props) => {
         return '';
     };
 
+    const getPointerClass = (props: ChessboardCellProps) => {
+        return props.type === CellType.CHESS_SQUARE ? 'cursor-pointer' : '';
+    };
+
+    const getHoverClass = (props: ChessboardCellProps) => {
+        if (props.type === CellType.CHESS_SQUARE) {
+            return (props.x + props.y) % 2 === 0 ? 'hover:bg-gray-300' : 'hover:bg-gray-700';
+        }
+        return '';
+    };
+
     const handleClick = () => {
         if (props.type === CellType.CHESS_SQUARE && props.onClick) {
             props.onClick(props.x, props.y);
@@ -29,7 +40,10 @@ const ChessboardCell: React.FC<ChessboardCellProps> = (props) => {
     };
 
     return (
-        <div className={`${getSizeClass(props.cellSize)} flex items-center justify-center cursor-pointer ${getColorClass(props)}`} onClick={handleClick}>
+        <div
+            className={`flex items-center justify-center ${getHoverClass(props)} ${getSizeClass(props.cellSize)} ${getPointerClass(props)} ${getColorClass(props)}`}
+            onClick={handleClick}
+        >
             {getContent()}
         </div>
     );

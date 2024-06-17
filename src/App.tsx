@@ -68,9 +68,9 @@ function App() {
             <h1 className="text-3xl font-bold underline my-4">Knight's Tour</h1>
             <div className="mb-4">
                 <label className="mr-2">Width:</label>
-                <input type="number" value={width} onChange={handleWidthChange} className="border rounded p-1" />
+                <input type="number" value={width} min={5} onChange={handleWidthChange} className="border rounded p-1" />
                 <label className="ml-4 mr-2">Height:</label>
-                <input type="number" value={height} onChange={handleHeightChange} className="border rounded p-1" />
+                <input type="number" value={height} min={5} onChange={handleHeightChange} className="border rounded p-1" />
             </div>
             <div className="mb-4">
                 <label className="mr-2">Path Opacity:</label>

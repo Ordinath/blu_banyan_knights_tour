@@ -79,3 +79,9 @@ export type ChessSquareCell = BaseCell & {
     onClick: (x: number, y: number) => void;
     showLabel: boolean;
 };
+
+export type KnightTourOutput = {
+    chessboard: Chessboard | null;
+    path: Position[] | null;
+    message: string;
+};
