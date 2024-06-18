@@ -307,24 +307,6 @@ export class KnightTour {
                             // no need to square root for comparison
                             let distanceA = (a.newPosition.x - this.center.x) ** 2 + (a.newPosition.y - this.center.y) ** 2;
                             let distanceB = (b.newPosition.x - this.center.x) ** 2 + (b.newPosition.y - this.center.y) ** 2;
-                            console.log('this.center', this.center);
-
-                            console.log('a.newPosition', a.newPosition);
-                            console.log('b.newPosition', b.newPosition);
-                            
-                            console.log('(a.newPosition.x - this.center.x)', a.newPosition.x - this.center.x);
-                            console.log('(a.newPosition.x - this.center.x) ** 2', (b.newPosition.x - this.center.x) ** 2);
-                            console.log('(a.newPosition.y - this.center.y)', a.newPosition.y - this.center.y);
-                            console.log('(a.newPosition.y - this.center.y) ** 2', (b.newPosition.y - this.center.y) ** 2);
-
-                            console.log('(b.newPosition.x - this.center.x)', b.newPosition.x - this.center.x);
-                            console.log('(b.newPosition.x - this.center.x) ** 2', (b.newPosition.x - this.center.x) ** 2);
-                            console.log('(b.newPosition.y - this.center.y)', b.newPosition.y - this.center.y);
-                            console.log('(b.newPosition.y - this.center.y) ** 2', (b.newPosition.y - this.center.y) ** 2);
-
-
-                            console.log('distanceA', distanceA);
-                            console.log('distanceB', distanceB);
 
                             let result =
                                 this.tieBreakMethod === TieBreakMethod.FURTHEST_FROM_CENTER
